@@ -4,7 +4,7 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import LinkPreview from "@/components/shared/LinkPreview";
-import { ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink, MapPin, Edit, Trash2 } from "lucide-react";
 import { useMapView } from "@/lib/contexts";
 import {
   Card,
@@ -25,6 +25,7 @@ export interface NewsItem {
   date?: string; // ISO string (was publishedAt)
   severity?: "critical" | "warning" | "info" | "normal"; // was status
   category?: string[]; // was tags
+  district?: string;
   // optional geo location for the news item — use `lon` not `lng`
   location?: { lat: number; lon: number } | null;
   // optional brief human-friendly location name to display under the date (snake_case)
@@ -33,9 +34,11 @@ export interface NewsItem {
 
 interface NewsCardProps {
   item: NewsItem;
+  onEdit?: (item: NewsItem) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function NewsCard({ item }: NewsCardProps) {
+export function NewsCard({ item, onEdit, onDelete }: NewsCardProps) {
   // show only the date (no time)
   const dateOnly = item.date ? new Date(item.date).toLocaleDateString() : "";
   const { focusOnLocation } = useMapView();
@@ -68,7 +71,8 @@ export function NewsCard({ item }: NewsCardProps) {
   }, [item.source]);
 
   const statusVariant = (status?: string) => {
-    switch (status) {
+    const s = status ? String(status).toLowerCase() : "";
+    switch (s) {
       case "critical":
         return "destructive";
       case "warning":
@@ -82,7 +86,8 @@ export function NewsCard({ item }: NewsCardProps) {
 
   const statusLabel = (status?: string) => {
     if (!status) return "";
-    return status.charAt(0).toUpperCase() + status.slice(1);
+    const s = String(status);
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   };
 
   const [showPopup, setShowPopup] = useState(false);
@@ -151,20 +156,42 @@ export function NewsCard({ item }: NewsCardProps) {
           </div>
           {item.source ? (
             <div className="relative">
-              <Link
-                href={item.source}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2"
-                onMouseEnter={() => setShowPopup(true)}
-                onMouseLeave={() => setShowPopup(false)}
-                onFocus={() => setShowPopup(true)}
-                onBlur={() => setShowPopup(false)}
-                onClick={() => setShowPopup((s) => !s)}
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span className="sr-only">Open source</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={item.source}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2"
+                  onMouseEnter={() => setShowPopup(true)}
+                  onMouseLeave={() => setShowPopup(false)}
+                  onFocus={() => setShowPopup(true)}
+                  onBlur={() => setShowPopup(false)}
+                  onClick={() => setShowPopup((s) => !s)}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="sr-only">Open source</span>
+                </Link>
+
+                <button
+                  type="button"
+                  title="Edit news item"
+                  className="ml-1 p-1 rounded-md hover:bg-muted"
+                  onClick={() => onEdit?.(item)}
+                >
+                  <Edit className="w-4 h-4" />
+                  <span className="sr-only">Edit</span>
+                </button>
+
+                <button
+                  type="button"
+                  title="Delete news item"
+                  className="p-1 rounded-md hover:bg-muted text-red-600 hover:text-red-700"
+                  onClick={() => onDelete?.(item.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="sr-only">Delete</span>
+                </button>
+              </div>
 
               {/* Hover/focus popup preview */}
               {showPopup && (

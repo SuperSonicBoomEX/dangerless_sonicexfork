@@ -20,7 +20,8 @@ export interface HistoricalEvent {
 }
 
 export interface AreaInfo {
-  status: DangerLevel;
+  // `status` now holds the raw backend risk level string (e.g. 'low', 'moderate', 'high', 'critical')
+  status?: string;
   subDistrict?: string;
   district?: string;
   province?: string;
@@ -40,21 +41,27 @@ interface AreaInfoCardProps {
 export function AreaInfoCard({ area, fromDate, toDate, onDateRangeChange, onToggleCollapsed }: AreaInfoCardProps) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const statusVariant = (status: DangerLevel) => {
-    switch (status) {
+  // Determine badge variant from backend risk level string
+  const statusVariant = (status?: string) => {
+    if (!status) return "outline";
+    const s = String(status).toLowerCase().trim();
+    switch (s) {
       case "critical":
         return "destructive";
-      case "warning":
+      case "high":
         return "secondary";
-      case "info":
+      case "moderate":
+      case "medium":
         return "default";
+      case "low":
+        return "outline";
       default:
         return "outline";
     }
   };
 
-  const statusLabel = (status: DangerLevel) =>
-    status.charAt(0).toUpperCase() + status.slice(1);
+  // Display the backend status string as-is (do not remap the value)
+  const statusLabel = (status?: string) => (status ?? "");
 
   return (
     <div className="relative">
@@ -63,6 +70,7 @@ export function AreaInfoCard({ area, fromDate, toDate, onDateRangeChange, onTogg
           <div className="flex items-center justify-between gap-2">
             <CardTitle>Selected area</CardTitle>
             <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Risk Level:</span>
               <Badge variant={statusVariant(area.status)}>
                 {statusLabel(area.status)}
               </Badge>
@@ -91,12 +99,7 @@ export function AreaInfoCard({ area, fromDate, toDate, onDateRangeChange, onTogg
         {!collapsed && (
           <CardContent>
             <dl className="flex flex-col gap-2 text-sm text-muted-foreground">
-              {area.subDistrict && (
-                <div className="flex items-center justify-between gap-4">
-                  <dt className="font-medium text-foreground">Sub-district</dt>
-                  <dd className="ml-4 text-right truncate">{area.subDistrict}</dd>
-                </div>
-              )}
+              {/* Sub-district removed from the UI per request */}
               {area.district && (
                 <div className="flex items-center justify-between gap-4">
                   <dt className="font-medium text-foreground">District</dt>
