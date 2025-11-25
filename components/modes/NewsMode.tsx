@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { useMarkerNew } from "@/lib/contexts/MarkerNewContext";
 
 export function NewsMode() {
   // NOTE: The old mock news items are commented out so the UI uses backend data as the source of truth.
@@ -25,7 +26,8 @@ export function NewsMode() {
     {
       id: "2",
       title: "New street lighting installed",
-      description: "Bright LED streetlights is currently being installed on Elm Street to improve visibility.",
+      description:
+        "Bright LED streetlights is currently being installed on Elm Street to improve visibility.",
       source: "https://youtu.be/J7FqiKJmwEI?si=shc-tBEp4W3l8gZW",
       date: new Date().toISOString(),
       severity: "info",
@@ -36,36 +38,39 @@ export function NewsMode() {
     {
       id: "3",
       title: "Islamic Center Renovation Completed",
-      description: "Renovation of the Islamic Center has been under construction, will featuring new facilities and improved accessibility. Please be careful to the surrounding area.",
+      description:
+        "Renovation of the Islamic Center has been under construction, will featuring new facilities and improved accessibility. Please be careful to the surrounding area.",
       source: "https://youtu.be/-fMkyL1q0eU?si=vrC-94qcXpol8izR",
       date: new Date().toISOString(),
       severity: "info",
       category: ["Caution"],
-      location: { lat: 13.7399, lon: 100.5250 },
+      location: { lat: 13.7399, lon: 100.525 },
       location_name: "Islamic Center",
     },
     {
       id: "4",
       title: "Tornado Warning Issued",
-      description: "A tornado warning has been issued for the area. Residents are advised to take shelter.",
+      description:
+        "A tornado warning has been issued for the area. Residents are advised to take shelter.",
       source: "https://youtu.be/aacHWoB7cmY?si=j30AnKaC7SNpQkPF",
       date: new Date().toISOString(),
       severity: "warning",
       category: ["Natural Hazard"],
-      location: { lat: 13.8050, lon: 100.5600 },
+      location: { lat: 13.805, lon: 100.56 },
       location_name: "Northern District",
     },
     {
       id: "5",
       title: "Car crash on Highway 50",
-      description: "Caution advised due to a multi-vehicle accident on Highway 50 causing delays.",
+      description:
+        "Caution advised due to a multi-vehicle accident on Highway 50 causing delays.",
       source: "https://youtu.be/pDOkKGbFZSY?si=YQOLb9G6WRYMESs7",
       date: new Date().toISOString(),
       severity: "warning",
       category: ["Accidents"],
       location: { lat: 13.736717, lon: 100.523186 },
       location_name: "Highway 50, Exit 7",
-    }
+    },
   ];
   */
 
@@ -225,17 +230,25 @@ export function NewsMode() {
 
     // filter by tags if any selected
     if (selectedTags && selectedTags.length > 0) {
-      results = results.filter((it) => !!it.category && it.category.some((t) => selectedTags.includes(t)));
+      results = results.filter(
+        (it) =>
+          !!it.category && it.category.some((t) => selectedTags.includes(t))
+      );
     }
 
     // filter by search term (title)
     if (searchTerm && searchTerm.trim() !== "") {
       const q = searchTerm.trim().toLowerCase();
-      results = results.filter((it) => (it.title || "").toLowerCase().includes(q));
+      results = results.filter((it) =>
+        (it.title || "").toLowerCase().includes(q)
+      );
     }
 
     // filter by date range if provided
-    if ((fromDate && fromDate.trim() !== "") || (toDate && toDate.trim() !== "")) {
+    if (
+      (fromDate && fromDate.trim() !== "") ||
+      (toDate && toDate.trim() !== "")
+    ) {
       let start: Date | null = null;
       let end: Date | null = null;
       if (fromDate) {
@@ -278,7 +291,10 @@ export function NewsMode() {
       <div className="flex items-start justify-between flex-wrap">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
           {filterOptions.map((opt) => (
-            <label key={opt} className="inline-flex items-center gap-2 whitespace-normal">
+            <label
+              key={opt}
+              className="inline-flex items-center gap-2 whitespace-normal"
+            >
               <Checkbox
                 checked={selectedTags.includes(opt)}
                 onCheckedChange={(v) => toggleTag(opt, !!v)}
@@ -307,7 +323,9 @@ export function NewsMode() {
           className="flex-1 text-sm border rounded-lg px-2 py-1"
         />
         {searchTerm && (
-          <Button variant="ghost" size="sm" onClick={() => setSearchTerm("")}>Clear</Button>
+          <Button variant="ghost" size="sm" onClick={() => setSearchTerm("")}>
+            Clear
+          </Button>
         )}
       </div>
 

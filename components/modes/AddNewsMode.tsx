@@ -1,7 +1,11 @@
-import React from "react";
-import { Send } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/shared";
+import { useLocationSelection } from "@/lib/contexts/LocationSelectionContext";
+import { useMapSelection } from "@/lib/hooks";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { validateDistrict } from "@/lib/utils/districtValidation";
 
 const REPORT_FIELDS = [
   {
@@ -25,6 +29,19 @@ const REPORT_FIELDS = [
     required: true,
   },
   {
+    id: "report-category",
+    label: "Category",
+    placeholder: "-- Select a category --",
+    type: "select" as const,
+    options: [
+      { value: "Caution" },
+      { value: "Natural Hazard" },
+      { value: "Violence" },
+      { value: "Accidents" },
+    ] as { value: string }[],
+    required: true,
+  },
+  {
     id: "report-source",
     label: "Source",
     placeholder: "Where did you find this information?",
@@ -40,12 +57,93 @@ const REPORT_FIELDS = [
 ] as const;
 
 export function AddNewsMode() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    // Form submission implementation pending
-    console.log("Form submitted");
-    // You can access form data here
-    const formData = new FormData(e.currentTarget);
-    console.log("Form data:", Object.fromEntries(formData.entries()));
+  const { selectedLocation, coordinates, setSelectedLocation, setCoordinates } =
+    useLocationSelection();
+  const { results, selectedIndex, clearSelection, clearMapMarker } =
+    useMapSelection();
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [resetFields, setResetFields] = useState(false);
+
+  // Clear state when display_name changes
+  useEffect(() => {
+    setError(null);
+    setSelectedLocation("");
+    setCoordinates(null);
+  }, [selectedIndex, results]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+
+    if (!coordinates || selectedIndex === null) {
+      setError("Please select a valid location for the report.");
+      return;
+    }
+
+    const displayName =
+      results?.[selectedIndex]?.display_name || "Unknown district";
+
+    // Validate that selectedLocation and displayName belong to the same district
+    if (!validateDistrict(selectedLocation, displayName)) {
+      setError(
+        "The selected location and search result don't belong to the same district. Please select a location within the search result."
+      );
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+
+      const newsData = {
+        title: formData.get("report-title"),
+        location: {
+          name: selectedLocation || "Unknown location",
+          lat: coordinates.lat,
+          lon: coordinates.lng,
+          address_district: displayName,
+        },
+        news_source: formData.get("report-source"),
+        news_date: formData.get("report-date"),
+        category: formData.get("report-category"),
+        description: formData.get("report-description"),
+        recommended_action: "To be determined",
+        status: "Private",
+        owner: user?.id || "userUID",
+        severity_id: null,
+      };
+
+      const response = await fetch("/api/news", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newsData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit report");
+      }
+
+      setSuccess(true);
+      (e.target as HTMLFormElement).reset();
+      setSelectedLocation("");
+      setCoordinates(null);
+      clearMapMarker();
+      setResetFields(!resetFields); // Trigger reset signal
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Error submitting report:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -57,14 +155,39 @@ export function AddNewsMode() {
       }}
     >
       {REPORT_FIELDS.map((field) => (
-        <FormField key={field.id} {...field} />
+        <FormField key={field.id} {...field} onReset={resetFields} />
       ))}
+
+      {error && (
+        <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/20">
+          <p className="text-xs text-destructive">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="p-2.5 rounded-xl bg-green-50 border border-green-200">
+          <p className="text-xs text-green-700">
+            Report submitted successfully!
+          </p>
+        </div>
+      )}
+
       <Button
         type="submit"
-        className="w-full rounded-xl h-10 bg-primary hover:bg-primary/90 transition-all shadow-md"
+        disabled={isLoading}
+        className="w-full rounded-xl h-10 bg-primary hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
       >
-        <Send className="w-4 h-4 mr-2" strokeWidth={2} />
-        Submit Report
+        {isLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          <>
+            <Send className="w-4 h-4 mr-2" strokeWidth={2} />
+            Submit Report
+          </>
+        )}
       </Button>
 
       <div className="p-2.5 rounded-xl bg-foreground/5 border border-border/10">
